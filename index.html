@@ -1,1 +1,2107 @@
-hi
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6d28d9">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('PWA Registered'))
+        .catch(err => console.log('PWA Failed', err));
+    });
+  }
+</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FNext3D</title>
+<style>
+/* 1. Body/HTML ကို မျက်နှာပြင် အပြည့် (Full Viewport Height) လုပ်ခြင်း */
+body, html {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", "Myanmar Text", sans-serif;
+    background: #f5f5f5;
+    height: 100%; 
+    overflow-y: hidden; /* အပေါ်ဆုံး body ကို scroll မရစေရန် */
+}
+/* screen ကို မျက်နှာပြင် အပြည့် ဖြစ်အောင် ပြင်ဆင်ခြင်း */
+.screen{ 
+    display: none; 
+    padding: 12px; 
+    height: 100vh; /* viewport height အပြည့် */
+    box-sizing: border-box; /* padding ကို height ထဲ ထည့်တွက်ရန် */
+    overflow-y: auto; /* စာမျက်နှာအတွင်း scroll ရရန် */
+}
+.screen.active{ display: block; }
+/* Home screen တွင် အောက်ဆုံးထိ မပြည့်ဘဲ အကြောင်းအရာသာ နေရာယူစေရန် */
+#screen-home.active {
+    height: auto;
+    overflow-y: auto;
+}
+/* --- [၁] ခေါင်းစဉ် (Header) ပြင်ဆင်မှု (Green Border Area) --- */
+.app-header{
+  background:white; 
+  height: 0; 
+  padding: 0; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  font-size: 0; 
+}
+/* ယနေ့ စာသား ဖျောက်ရန် */
+.app-sub{
+  display: none;
+}
+
+.card{
+  background:white;
+  border-radius:12px;
+  padding:14px;
+  box-shadow:0 0 10px rgba(0,0,0,0.08);
+  margin-bottom:14px;
+}
+/* HOME MENU */
+.menu-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+margin-top:10px;
+}
+.menu-btn{
+background:#6d28d9;
+color:white;
+border-radius:16px;
+padding:20px 8px;
+text-align:center;
+font-size:16px;
+font-weight:600;
+border:none;
+box-shadow:0 4px 10px rgba(0,0,0,0.18);
+}
+.menu-btn span{
+display:block;
+margin-top:6px;
+font-size:13px;
+opacity:.9;
+}
+.menu-btn.sent-vouchers-btn {
+    background: #059669;
+}
+
+.back-btn{
+    position: absolute; 
+    top: 15px; 
+    left: 10px;
+    z-index: 10; 
+    background: #e5e7eb; 
+    color: #6d28d9; 
+    border: none; 
+    padding: 8px 14px; 
+    border-radius:999px;
+    font-size:15px;
+}
+#screen-home .back-btn {
+    display: none;
+}
+
+h2{
+margin:4px 0 10px;
+font-size:18px;
+}
+label{
+font-size:13px;
+display:block;
+margin-bottom:6px;
+}
+input{
+width:100%;
+padding:8px;
+border-radius:8px;
+border:1px solid #cbd5e1;
+margin-top:3px;
+font-size:14px;
+}
+.number-input{
+  font-size:20px; 
+  font-weight:600;
+}
+button{ cursor:pointer; }
+.btn-primary{
+background:#6d28d9;
+color:white;
+border:none;
+border-radius:10px;
+padding:10px;
+margin-top:8px;
+width:100%;
+font-size:15px;
+}
+
+.pills{ margin-top:8px; }
+.pill{
+display:inline-block;
+font-size:18px;
+padding:10px 16px;
+border-radius:999px;
+background:#d1fae5; 
+color:#047857; 
+margin:6px;
+font-weight:600;
+border:1px solid #6ee7b7;
+}
+.pill.active{
+background:#10b981; 
+color:white;
+}
+
+.small-label{
+font-size:11px;
+color:#6b7280;
+}
+
+.inline-field{
+display:flex;
+align-items:center;
+gap:8px;
+margin-top:6px;
+}
+.inline-field label{
+margin-bottom:0;
+white-space:nowrap;
+}
+
+.input-row-header{
+display:grid;
+grid-template-columns:1.1fr 1fr 1fr;
+gap:6px;
+margin-top:8px;
+}
+.input-row-header div{
+font-size:11px;
+color:#6b7280;
+}
+.input-row{
+display:grid;
+grid-template-columns:1.1fr 1fr 1fr;
+gap:6px;
+margin-top:4px;
+}
+.input-row input{ margin-top:0; }
+
+.number-input.active{
+border-color:#2563eb;
+box-shadow:0 0 0 1px #2563eb;
+}
+
+.keypad{
+margin-top:8px;
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:4px;
+}
+.keypad button{
+padding:10px 0;
+font-size:20px;
+border:none;
+border-radius:6px;
+background:#00838f;
+color:#fff;
+font-weight:600;
+}
+.keypad button[data-action="clear"],
+.keypad button[data-action="ok"] {
+    font-size: 16px; 
+}
+.keypad .green{ background:#2e7d32; }
+.keypad .orange{ background:#ef6c00; }
+.keypad .purple{ background:#6d28d9; }
+.keypad .yellow{ background:#fbbf24; color:#000; font-weight:700; }
+
+table{
+width:100%;
+border-collapse:collapse;
+font-size:14px; 
+margin-top:8px;
+}
+th,td{
+border-bottom:1px solid #e5e7eb;
+padding:6px 4px;
+text-align:center;
+}
+.records-table tbody td:nth-child(2){ 
+    font-weight: 700; 
+    font-size: 18px; 
+    text-align: left;
+} 
+.records-table tbody td:nth-child(3),
+.records-table tbody td:nth-child(4){
+    font-weight: 600;
+    font-size: 16px;
+}
+table th:nth-child(3),
+table th:nth-child(4),
+table td:nth-child(3),
+table td:nth-child(4){
+text-align:right;
+}
+.records-table tfoot {
+    display: none;
+}
+.total-box{
+margin-top:6px;
+padding:6px 8px;
+border-radius:8px;
+border:1px solid #cbd5e1;
+font-size:14px;
+font-weight:600;
+text-align:right;
+}
+
+.voucher-group{
+border:1px solid #1f2937; 
+border-radius:10px;
+padding:8px;
+margin-bottom:14px;
+}
+.voucher-group-header{
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:6px 8px; 
+background:#4b5563; 
+border-radius:6px;
+cursor:pointer;
+}
+.voucher-group-title{
+font-size:14px;
+font-weight:600;
+color:white; 
+}
+.voucher-group-body{
+margin-top:6px;
+display:none;
+}
+.voucher-group.open .voucher-group-body{
+display:block;
+}
+.voucher-img{
+width:100%;
+max-width:360px;
+border-radius:8px;
+}
+#voucher-preview {
+    position: absolute;
+    left: -9999px;
+    width: 600px; /* အကျယ်ကို နည်းနည်းလျှော့လိုက်ပါ */
+    padding: 25px;
+    background: #1e293b; /* Gradient အစား Solid Color သုံးတာ ပိုမြန်ပါတယ် */
+    border-radius: 20px;
+    font-family: 'Segoe UI', sans-serif;
+    color: #f8fafc;
+}
+
+
+.v-brand {
+    text-align: center;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #38bdf8;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.v-header-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.v-buyer-name {
+    font-size: 44px;
+    font-weight: 800;
+    color: #dd40eg;
+}
+
+.v-date {
+    font-size: 28px;
+    color: #94c3b8;
+}
+/* ၁။ ဂဏန်းနှင့် တန်ဖိုးအစုအဝေးကြား 1cm (38px) ခွာခြင်း */
+.v-item-card {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 20px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 38px; 
+}
+
+.v-num {
+    font-size: 50px;
+    font-weight: 700;
+    color: #36bdf8;
+    min-width: 85px;
+}
+
+/* ၂။ တန်ဖိုးများကို ၅ တန်းခွဲ၍ ညာဘက်ကပ်ခြင်း (Digit Alignment) */
+.v-amount-grid {
+    display: grid;
+    /* Columns: [Value1][Label1][X][Value2][Label2] */
+    /* တန်ဖိုးတစ်ခုစီကြား 0.5cm (19px) ခွာထားသည် */
+    grid-template-columns: 120px 55px 20px 120px 55px;
+    column-gap: 10px; /* column တခုချင်းစီကြား အကွာအဝေး */
+    align-items: center;
+    font-size: 50px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+/* ဂဏန်းများကို ညာဘက်ကပ်ထုတ်ရန် (ခု ဆယ် ရာ တန်းစေရန်) */
+.v-right {
+    text-align: right;
+    font-family: 'Courier New', monospace; /* ဂဏန်းများ ပိုတန်းစေရန် monospaced font သုံးနိုင်သည် */
+}
+
+/* (ပေါ်) (အောက်) စာသားများ */
+.v-label {
+    font-size: 15px;
+    font-weight: normal;
+    color: #ff99cc;
+    text-align: left;
+    padding-left: 5px;
+}
+
+.v-x {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 50px;
+}
+
+
+/* × သင်္ကေတကို အလယ်တည့်တည့် ထားရန် */
+.v-amount-grid span:nth-child(2) {
+    text-align: center;
+    color: #94a3b8;
+}
+
+.v-total-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #0f172a;
+}
+
+.v-total-label {
+    font-size: 26px;
+    font-weight: bold;
+}
+
+.v-total-value {
+    font-size: 40px;
+    font-weight: 700;
+}
+
+.v-footer-msg {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+    color: #64748b;
+    font-style: italic;
+}
+
+.voucher-item{
+margin-top:8px;
+border-radius:8px;
+border:2px solid transparent;
+padding:4px;
+position:relative;
+}
+.voucher-item.selected{
+border-color:#f97316;
+}
+.voucher-actions{
+margin-top:4px;
+display: flex;
+gap: 8px;
+margin-bottom: 8px;
+}
+.voucher-actions button {
+    flex-grow: 1;
+    margin-top: 0;
+}
+
+.delete-voucher-btn{
+position:absolute;
+top:8px;
+right:8px;
+background:#dc2626;
+color:white;
+border:none;
+border-radius:999px;
+width:24px;
+height:24px;
+font-size:12px;
+font-weight:bold;
+line-height:1;
+padding:0;
+z-index:10;
+}
+.voucher-group.sent .voucher-group-header {
+    background: #059669;
+}
+
+.history-item{
+border:1px solid #d4d4d4;
+border-radius:10px;
+padding:8px;
+margin-bottom:10px;
+}
+.history-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:6px 8px; 
+background:#e5e7eb; 
+border-radius:6px;
+cursor:pointer;
+}
+.history-date{
+font-size:13px; 
+font-weight:600; 
+color:#374151; 
+}
+.history-body{
+margin-top:6px;
+display:none;
+}
+.history-item.open .history-body{
+display:block;
+}
+.history-table{
+width:100%;
+border-collapse:collapse;
+font-size:13px;
+}
+.history-table th,
+.history-table td{
+border:1px solid #374151; 
+padding:4px;
+text-align:left;
+}
+.history-table th{ background:#f3f4f6; }
+.history-table textarea{ 
+margin:0;
+white-space:pre;
+font-family:monospace;
+width:100%;
+min-height:180px; 
+border:none;
+resize:none;
+font-size:14px; 
+overflow:auto;
+}
+
+.groups-box{
+    border:1px solid #9ca3af;
+    border-radius:8px;
+    padding:6px;
+    margin-top:8px;
+    flex-grow: 1; 
+    margin-bottom: 0px; 
+    display: flex; 
+    flex-direction: column;
+}
+.groups-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    flex-grow: 1;
+}
+.groups-table th,
+.groups-table td{
+    border:1px solid #9ca3af;
+    padding: 4px;
+    vertical-align: top;
+    flex-grow: 1;
+}
+.groups-table th{ background:#f3f4f6; }
+.groups-table textarea{
+    width:100%;
+    min-height: 250px; 
+    height: 100%;
+    border:none;
+    resize:none;
+    font-family:monospace;
+    font-size: 18px; 
+    white-space:nowrap;
+    overflow:auto;
+    padding: 2px;
+}
+
+#groups-main-card > .history-item > .groups-box:nth-child(2),
+#groups-main-card > .history-item > .groups-box:nth-child(3) {
+    flex-grow: 1;
+    margin-bottom: 0px; 
+    display: flex; 
+    flex-direction: column;
+}
+#groups-main-card textarea {
+    font-size: 18px; 
+}
+
+.settings-btn{
+width:100%;
+padding:10px;
+margin-top:8px;
+border-radius:8px;
+border:1px solid #d4d4d4;
+background:#f9fafb;
+font-size:14px;
+text-align:left;
+}
+
+#commission-top-header,
+#history-top-header,
+#voucher-top-header,
+#groups-top-header,
+#settings-top-header { 
+    position:fixed; 
+    top:0; 
+    left:0; 
+    right:0; 
+    background:white; 
+    z-index:50; 
+    box-shadow:0 2px 4px rgba(0,0,0,0.05); 
+    padding:10px;
+    height: 50px; 
+    box-sizing: border-box;
+}
+
+#screen-commission.active {
+    height: 100vh;
+    overflow-y: hidden; 
+}
+#records-section {
+    height: calc(100vh - 50px - 24px); 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column;
+    padding-top: 50px; 
+    box-sizing: border-box; 
+}
+#commission-selection-card {
+    height: 100%; 
+    display: flex;
+    flex-direction: column;
+}
+
+.records-scroll-container {
+    overflow-y: auto;
+    margin-bottom: 6px; 
+    flex-grow: 1; 
+    min-height: 100px; 
+}
+.seller-name-info {
+    display: none; 
+}
+#num-keypad {
+    margin-top: auto; 
+}
+#patient-title-in-header {
+    position: absolute;
+    top: 15px !important; 
+    right: 30px !important; 
+    font-weight: 700 !important;
+    font-size: 20px !important; 
+    color: #6d28d9 !important;
+}
+
+#screen-history .card {
+    margin-top: 50px; 
+    padding-top: 0; 
+}
+#history-title-in-header {
+    position: absolute;
+    top: 15px !important; 
+    right: 30px !important; 
+    font-weight: 700 !important;
+    font-size: 20px !important; 
+    color: #6d28d9 !important;
+}
+
+#screen-vouchers .card {
+    margin-top: 50px; 
+    padding-top: 0; 
+}
+#voucher-title-in-header {
+    display: none; 
+}
+
+#screen-numbers.active {
+    height: 100vh;
+    overflow-y: hidden; 
+    display: flex;
+    flex-direction: column;
+    padding-top: 50px; 
+    padding-bottom: 12px; 
+    box-sizing: border-box; 
+}
+
+#groups-main-card {
+    flex-grow: 1; 
+    display: flex;
+    flex-direction: column;
+    padding: 14px; 
+    margin-top: 0 !important; 
+    margin-bottom: 0; 
+    overflow-y: auto; 
+}
+#current-groups-box-container {
+    flex-grow: 1; 
+    display: flex;
+    flex-direction: column;
+    overflow-y: visible;
+    margin-bottom: 4px;
+}
+#groups-title-in-header {
+    position: absolute; 
+    top: 15px; 
+    right: 30px; 
+    font-weight: 700; 
+    font-size: 20px; 
+    color: #6d28d9;
+}
+
+/* NEW STYLES FOR LIMIT SYSTEM */
+.tab-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+.tab-btn {
+    flex: 1;
+    white-space: nowrap;
+    padding: 8px 4px;
+    background: #e5e7eb;
+    border: none;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.tab-btn.active {
+    background: #6d28d9;
+    color: white;
+}
+.limit-input-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff3e0;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ffb74d;
+}
+.limit-input-box label { margin: 0; font-weight: bold; }
+.limit-input-box input { margin: 0; width: 80px; text-align: center; }
+#sales-ledger-list {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+</style>
+</head>
+
+<body>
+<div id="activation-gate" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#ffffff; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family: sans-serif;">
+    <div style="background:white; padding:40px; border-radius:20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align:center; max-width: 350px;">
+        <h2 style="color:#333;">Next3D Security</h2>
+        <p style="color:#666;">ဤဖုန်းမှာ အသုံးပြုရန် ခွင့်ပြုချက် လိုအပ်ပါသည်။</p>
+        
+        <div style="background:#f1f5f9; padding:15px; border-radius:10px; margin-bottom:20px;">
+            <small style="color:#64748b; display:block; margin-bottom:5px;">သင့်ဖုန်း၏ ID နံပါတ်</small>
+            <b id="display-device-id" style="font-size:14px; color:#1e293b; word-break: break-all;">Generating...</b>
+        </div>
+
+        <button onclick="copyDeviceID()" style="background:#6d28d9; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; margin-bottom:20px; width:100%;">ID ကို ကော်ပီကူးပြီး ပိုင်ရှင်ထံပို့ရန်</button>
+        
+        <p id="act-waiting" style="color:#f59e0b; font-size:14px; font-weight:bold;">⏳ ပိုင်ရှင်ထံမှ ခွင့်ပြုချက်ကို စောင့်ဆိုင်းနေပါသည်။</p>
+    </div>
+</div>
+
+<div id="original-software-container" style="display:none;">
+
+<div class="app-header">Next3D (3D စရင်း ဆော့ဝဲ)</div>
+<div class="app-sub" id="today-text"></div>
+
+<div class="screen active" id="screen-home">
+  <div class="card">
+    <h2>မူလ မီနူး</h2>
+    <div class="menu-grid">
+      <button class="menu-btn" onclick="openScreen('commission')">
+        ကော်မရှင်
+        <span>ကော်မရှင် စာရင်း</span>
+      </button>
+      <button class="menu-btn" onclick="openScreen('numbers')">
+        ဂဏန်းအုပ်စုများ
+        <span>Auto အုပ်စု ၄ စု</span>
+      </button>
+      <button class="menu-btn" onclick="openScreen('vouchers')">
+        ဘောင်ချာ
+        <span>မပို့ရသေးသော ဘောင်ချာများ</span>
+      </button>
+      <button class="menu-btn sent-vouchers-btn" onclick="openScreen('vouchers-sent')">
+        ဘောင်ချာမှတ်တမ်း
+        <span>ပို့ပြီး ဘောင်ချာများ</span>
+      </button>
+      <button class="menu-btn" onclick="openScreen('history')">
+        မှတ်တမ်း
+        <span>တင်ထားပြီး အုပ်စု စာရင်း</span>
+      </button>
+        <button class="menu-btn" style="background:#db2777;" onclick="openScreen('checker')">
+        ပေါက်သီးစစ်ရန်
+        <span>ဂဏန်းထည့်၍ ပေါက်ကြေးကြည့်ရန်</span>
+      </button>    
+      <button class="menu-btn" onclick="openScreen('settings')">
+        ဆက်တင်
+        <span>Language / Reset</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-commission">
+  <div id="commission-top-header">
+    <button class="back-btn" onclick="openScreen('home')"> Back</button>
+    <div id="patient-title-in-header"></div>
+  </div>
+  
+  <div class="card" id="commission-selection-card" style="margin-top:50px; padding-top:14px;">
+    <div class="small-label">ကော်မရှင် နာမည်ကို ဒီနေရာမှာ Save လုပ်ပါ</div>
+    <label>
+      ကော်မရှင်
+      <input id="patient-name">
+    </label>
+    <button class="btn-primary" onclick="addPatient()">Save</button>
+    <div class="pills" id="patient-list" style="flex-grow:1; overflow-y:auto;"></div>
+  </div>
+  
+  <div class="card" id="records-section" style="display:none;">
+    <div id="name-date-row" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px;">
+        <div class="inline-field" style="flex-grow: 1; margin-top: 0;">
+            <label for="buyer-name" style="margin-bottom: 2px;">အမည်</label> 
+            <input id="buyer-name" style="width: 100%;"> 
+        </div>
+        <div id="date-display-container" style="position: static; margin-left: 10px; margin-bottom: 12px;">
+            <div id="entry-date-small" style="font-size: 11px; color: #4b5563; font-weight: 600;"></div>
+        </div>
+    </div>
+    
+    <div class="inline-field" style="display:none;">
+      <div id="entry-date" style="padding:8px 10px;border-radius:8px;border:1px solid #cbd5e1;font-size:13px;"></div>
+    </div>
+    
+    <div class="records-scroll-container">
+        <table class="records-table">
+          <tbody id="records-table"></tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" style="text-align:left;">စုစုပေါင်း</th> 
+              <th id="sum1">0</th>
+              <th id="sum2">0</th>
+              <th></th>
+            </tr>
+          </tfoot>
+        </table>
+    </div> 
+    
+    <div class="total-box">
+      စုစုပေါင်း = <span id="sumAll">0</span>
+    </div>
+
+    <div class="input-row">
+      <input id="num" class="number-input" maxlength="3" readonly data-first-key="true"> 
+      <input id="v1" class="number-input" readonly data-first-key="true">
+      <input id="v2" class="number-input" readonly data-first-key="true">
+    </div>
+    
+    <div id="num-keypad" class="keypad">
+      <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button class="green" data-action="round">R</button>
+      <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button><button class="green" data-key="/">/</button>
+      <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button><button class="yellow" data-action="m">M</button>
+      <button class="orange" data-action="clear">ရှင်းပါ</button><button data-key="0">0</button><button data-key="00">00</button><button class="purple" data-action="ok">Add</button>
+    </div>
+    
+    <button class="btn-primary" onclick="makeVoucher()">ဘောင်ချာ ထုတ်မယ်</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-vouchers">
+  <div id="voucher-top-header">
+    <button class="back-btn" onclick="openScreen('home')"> Back</button>
+    <div id="voucher-title-in-header"></div>
+  </div>
+  <div class="card" style="margin-top:50px; padding-top:0;">
+    <div class="voucher-actions">
+      <button class="btn-primary" id="move-selected-btn" onclick="moveSelectedVouchers()" disabled>ရွှေ့မည်</button>
+      <button class="btn-primary" id="share-selected-btn" onclick="shareSelectedVouchers()" disabled>ပို့မည်</button>
+    </div>
+    <div id="voucher-list"></div>
+  </div>
+</div>
+
+<div class="screen" id="screen-vouchers-sent">
+    <div id="voucher-sent-top-header">
+        <button class="back-btn" onclick="openScreen('home')"> Back</button>
+        <div style="position: absolute; top: 15px; right: 30px; font-weight: 700; font-size: 20px; color: #6d28d9;">ဘောင်ချာမှတ်တမ်း</div>
+    </div>
+    
+    <div class="card" style="margin-top:50px; padding:10px; background: transparent; box-shadow: none;">
+        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+            <button id="btn-show-sales" class="btn-primary" style="flex: 1; background: #6d28d9;" onclick="toggleSentView('sales')">အရောင်းစာရင်း</button>
+            <button id="btn-show-vouchers" class="btn-primary" style="flex: 1; background: #e5e7eb; color: #374151;" onclick="toggleSentView('vouchers')">ဘောင်ချာများ</button>
+        </div>
+
+        <div style="height: 75vh; overflow-y: auto; padding-bottom: 50px;">
+            <div id="view-sales-summary">
+                <div id="sales-ledger-list"></div>
+            </div>
+            <div id="view-vouchers-list" style="display: none;">
+                <div id="voucher-list-sent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="screen" id="screen-numbers">
+  <div id="groups-top-header">
+    <button class="back-btn" onclick="openScreen('home')"> Back</button>
+    <div id="groups-title-in-header">ဂဏန်းအုပ်စုများ</div>
+  </div>
+  <div class="card" id="groups-main-card">
+    <div class="tab-row">
+        <button class="tab-btn active" onclick="switchGroupTab(1)">သုံးလုံး ဒဲ့</button>
+        <button class="tab-btn" onclick="switchGroupTab(2)">သုံးလုံး တွတ်</button>
+        <button class="tab-btn" onclick="switchGroupTab(3)">နှစ်လုံး ပေါ်</button>
+        <button class="tab-btn" onclick="switchGroupTab(4)">နှစ်လုံး အောက်</button>
+    </div>
+
+    <div class="limit-input-box">
+        <label>Limit သတ်မှတ်ရန်:</label>
+        <input type="number" id="current-group-limit" oninput="updateLimitValue(this.value)" placeholder="0">
+    </div>
+
+    <div class="history-item" id="current-groups-box-container" style="display: flex; flex-direction: column;">
+      <div class="history-date" id="current-groups-date-header"></div>
+      <div id="single-group-view" style="flex-grow: 1; display: flex; flex-direction: column;">
+        </div>
+    </div>
+    <button class="btn-primary" id="submit-groups-btn" onclick="submitNumberGroups()">တင်မည်</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-history">
+  <div id="history-top-header">
+    <button class="back-btn" onclick="openScreen('home')"> Back</button>
+    <div id="history-title-in-header">မှတ်တမ်း</div>
+  </div>
+  <div class="card" style="margin-top:50px; padding-top:0;">
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<div class="screen" id="screen-settings">
+  <div id="settings-top-header">
+    <button class="back-btn" onclick="openScreen('home')"> Back</button>
+    <div id="settings-title-in-header" style="position: absolute; top: 15px; right: 30px; font-weight: 700; font-size: 20px; color: #6d28d9;">ဆက်တင်</div>
+  </div>
+  <div class="card" style="margin-top:50px; padding-top:0;">
+    <button class="settings-btn" onclick="setLanguage('my')">ဘာသာ (မြန်မာ)</button>
+    <button class="settings-btn" onclick="setLanguage('en')">Language (English)</button>
+    <button class="settings-btn" style="border-color:#f97373;color:#b91c1c;" onclick="resetAll()"> Data Reset (ဒေတာအားလုံး ဖျက်မယ်)</button>
+  </div>
+</div>
+<div class="screen" id="screen-checker">
+  <div style="position:fixed; top:0; left:0; right:0; background:#fff; z-index:100; padding:15px; display:flex; align-items:center; border-bottom:1px solid #eee;">
+    <button onclick="openScreen('home')" style="background:#f1f5f9; border:none; padding:8px 12px; border-radius:8px; color:#64748b; font-weight:bold;"> ← Back </button>
+    <div style="flex-grow:1; text-align:center; font-size:18px; font-weight:bold; color:#db2777; margin-right:60px;">ပေါက်သီးစစ်ဆေးခြင်း</div>
+  </div>
+
+  <div style="padding:15px; margin-top:70px;">
+    <div class="card" style="border-radius:12px; border:none; box-shadow:0 2px 8px rgba(0,0,0,0.05); padding:15px; margin-bottom:15px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-weight:bold; color:#334155;">၃ လုံး (ဒဲ့/တွတ်)</span>
+        <button onclick="clearWinnerData('3D')" style="font-size:11px; color:#ef4444; border:none; background:none;">ဖျက်ရန်</button>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <input type="number" id="win-3d" placeholder="၃ လုံးဂဏန်း" style="flex-grow:1; font-size:20px; text-align:center; border:1px solid #cbd5e1; border-radius:10px; padding:10px;">
+        <button onclick="check3DWinners()" style="background:#db2777; color:white; border:none; border-radius:10px; padding:0 20px; font-weight:bold;">စစ်မည်</button>
+      </div>
+      <div id="winning-results-area-3d" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card" style="border-radius:12px; border:none; box-shadow:0 2px 8px rgba(0,0,0,0.05); padding:15px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-weight:bold; color:#334155;">၂ လုံး (အပေါ်/အောက်)</span>
+        <button onclick="clearWinnerData('2D')" style="font-size:11px; color:#ef4444; border:none; background:none;">ဖျက်ရန်</button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom:10px;">
+        <input type="number" id="win-2d-top" placeholder="အပေါ်" style="font-size:18px; text-align:center; border:1px solid #cbd5e1; border-radius:10px; padding:10px;">
+        <input type="number" id="win-2d-bottom" placeholder="အောက်" style="font-size:18px; text-align:center; border:1px solid #cbd5e1; border-radius:10px; padding:10px;">
+      </div>
+      <button onclick="check2DWinners()" style="width:100%; background:#059669; color:white; border:none; border-radius:10px; padding:12px; font-weight:bold;">၂ လုံး စစ်ဆေးမည်</button>
+      <div id="winning-results-area-2d" style="margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="voucher-preview"></div>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+/* ---------- STATE ---------- */
+var patients = [];
+var recordsByIndex = [];
+var vouchers = [];
+var sentVouchers = [];
+var numberGroups = [];
+var current = null;
+var group3_v1 = [];
+var group3_v2 = [];
+var group2_v1 = [];
+var group2_v2 = [];
+var activeNumberInput = null;
+var currentLanguage = "my";
+var selectedVoucherIndexes = [];
+
+// New Limit State
+var activeGroupTab = 1;
+var groupLimits = { col1: 0, col2: 0, col3: 0, col4: 0 };
+
+/* ---------- UTIL ---------- */
+function setToday(){
+var now = new Date();
+var opt = {year:"numeric",month:"long",day:"numeric"};
+document.getElementById("today-text").innerText = "ယနေ့ - " + now.toLocaleDateString("en-GB", opt);
+document.getElementById("entry-date").innerText = now.toLocaleDateString("en-GB");
+document.getElementById("entry-date-small").innerText = now.toLocaleDateString("en-GB"); 
+}
+function getPermutationsOf3(s){
+var a=s[0],b=s[1],c=s[2];
+var arr=[a+b+c,a+c+b,b+a+c,b+c+a,c+a+b,c+b+a];
+var seen={},out=[];
+for(var i=0;i<arr.length;i++){
+if(!seen[arr[i]]){ seen[arr[i]]=true; out.push(arr[i]); }
+}
+return out;
+}
+function perm2(s){
+return s[0]===s[1] ? [s] : [s, s[1]+s[0]];
+}
+
+/* ---------- INDEXEDDB PERSISTENCE ---------- */
+const DB_NAME = "Next3D_Database";
+const STORE_NAME = "AppState";
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        let request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = (e) => {
+            let db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
+    });
+}
+
+async function saveState() {
+    var state = {
+        patients: patients,
+        recordsByIndex: recordsByIndex,
+        vouchers: vouchers,
+        sentVouchers: sentVouchers,
+        numberGroups: numberGroups,
+        current: current,
+        group3_v1: group3_v1,
+        group3_v2: group3_v2,
+        group2_v1: group2_v1,
+        group2_v2: group2_v2,
+        language: currentLanguage,
+        groupLimits: groupLimits // Save Limits
+    };
+    try {
+        let db = await openDB();
+        let tx = db.transaction(STORE_NAME, "readwrite");
+        let store = tx.objectStore(STORE_NAME);
+        store.put(state, "current_data");
+    } catch (e) {
+        console.error("Save error:", e);
+    }
+}
+
+async function loadState() {
+    try {
+        let db = await openDB();
+        let tx = db.transaction(STORE_NAME, "readonly");
+        let store = tx.objectStore(STORE_NAME);
+        let request = store.get("current_data");
+
+        request.onsuccess = () => {
+            let st = request.result;
+            if (st) {
+                patients = st.patients || [];
+                recordsByIndex = st.recordsByIndex || [];
+                vouchers = st.vouchers || [];
+                sentVouchers = st.sentVouchers || [];
+                numberGroups = st.numberGroups || [];
+                current = (typeof st.current === "number") ? st.current : null;
+                group3_v1 = st.group3_v1 || [];
+                group3_v2 = st.group3_v2 || [];
+                group2_v1 = st.group2_v1 || [];
+                group2_v2 = st.group2_v2 || [];
+                currentLanguage = st.language || "my";
+                groupLimits = st.groupLimits || { col1: 0, col2: 0, col3: 0, col4: 0 };
+                applyLanguage();
+                renderPatients();
+                recalculateAutoGroups();
+                renderHistory();
+                if(current !== null) selectPatient(current);
+            }
+        };
+    } catch (e) {
+        console.error("Load error:", e);
+    }
+}
+
+async function resetAll() {
+    if (confirm("ဒေတာ အားလုံး ဖျက်မလား?")) {
+        try {
+            let db = await openDB();
+            let tx = db.transaction(STORE_NAME, "readwrite");
+            tx.objectStore(STORE_NAME).clear();
+            tx.oncomplete = () => location.reload();
+        } catch (e) {
+            console.error("Reset error:", e);
+        }
+    }
+}
+
+/* ---------- SETTINGS ---------- */
+function applyLanguage(){
+var header = document.querySelector(".app-header");
+header.textContent = currentLanguage==="en" ? "Next3D (3D Ledger Software)" : "Next3D (3D စရင်း ဆော့ဝဲ)";
+}
+function setLanguage(lang){
+currentLanguage = lang;
+applyLanguage();
+saveState();
+}
+
+/* ---------- NAV ---------- */
+function openScreen(name){
+var screens=document.getElementsByClassName("screen");
+for(var i=0;i<screens.length;i++){ screens[i].classList.remove("active"); }
+document.getElementById("screen-"+name).classList.add("active");
+if(name==="commission"){
+    document.getElementById("commission-selection-card").style.display="block";
+    document.getElementById("records-section").style.display="none";
+    document.getElementById("patient-title-in-header").innerText = ""; 
+    current = null;
+    renderPatients(); 
+}
+if(name==="vouchers") renderVouchers(vouchers, false);
+if(name==="vouchers-sent") renderVouchers(sentVouchers, true);
+if(name==="history") renderHistory();
+if(name==="numbers") updateNumberGroupsScreen();
+}
+
+/* ---------- PATIENTS ---------- */
+function addPatient(){
+var input=document.getElementById("patient-name");
+var name=input.value.trim();
+if(!name){ alert("ကော်မရှင် နာမည် ထည့်ပါ"); return; }
+patients.push(name);
+recordsByIndex[patients.length-1]=[];
+input.value="";
+renderPatients();
+saveState();
+}
+function renderPatients(){
+var list=document.getElementById("patient-list");
+list.innerHTML="";
+for(var i=0;i<patients.length;i++){
+var span=document.createElement("span");
+span.className="pill"+(current===i?" active":"");
+span.innerText=patients[i];
+span.onclick=(function(idx){ return function(){ selectPatient(idx); }; })(i);
+list.appendChild(span);
+}
+}
+function selectPatient(i){
+    current=i;
+    document.getElementById("patient-title-in-header").innerText = patients[i];
+    document.getElementById("commission-selection-card").style.display="none"; 
+    document.getElementById("records-section").style.display="flex"; 
+    renderPatients(); 
+    renderRecords(); 
+    saveState();
+}
+
+/* ---------- RECORDS + KEYPAD ---------- */
+function recalculateAutoGroups(){
+    group3_v1=[]; group3_v2=[]; group2_v1=[]; group2_v2=[];
+
+    // ၁။ မပို့ရသေးသော ဘောင်ချာများမှ ဂဏန်းများကို တွက်ခြင်း
+    vouchers.forEach(function(v){
+        if(v && v.rows){ v.rows.forEach(function(rec){ addToAutoGroups(rec.number, rec.v1, rec.v2, false); }); }
+    });
+
+    // ၂။ ပို့ပြီးသား (ဘောင်ချာမှတ်တမ်း) ထဲက ဂဏန်းများကိုပါ ထည့်တွက်ခြင်း (အသစ်ထည့်လိုက်သော အပိုင်း)
+    sentVouchers.forEach(function(v){
+        if(v && v.rows){ v.rows.forEach(function(rec){ addToAutoGroups(rec.number, rec.v1, rec.v2, false); }); }
+    });
+
+    // ၃။ ကော်မရှင်စာရင်းထဲမှာ ရိုက်လက်စ ဂဏန်းများကို တွက်ခြင်း
+    for(var pi=0; pi<recordsByIndex.length; pi++){
+        var list = recordsByIndex[pi] || [];
+        for(var ri=0; ri<list.length; ri++){
+            var rec = list[ri];
+            if(rec && rec.number){ addToAutoGroups(rec.number, rec.v1, rec.v2, false); }
+        }
+    }
+
+    updateNumberGroupsScreen();
+    saveState();
+}
+
+
+function addToAutoGroups(number,v1,v2, shouldSave=true){
+var len=number.length;
+if(len===3){
+if(v1!==null && !isNaN(v1)) group3_v1.push(number+"="+v1);
+if(v2!==null && !isNaN(v2)) group3_v2.push(number+"="+v2);
+}else if(len===2){
+if(v1!==null && !isNaN(v1)) group2_v1.push(number+"="+v1);
+if(v2!==null && !isNaN(v2)) group2_v2.push(number+"="+v2);
+}
+if(shouldSave){ updateNumberGroupsScreen(); saveState(); }
+}
+
+/* ---------- LIMIT & GROUP SCREEN LOGIC ---------- */
+function switchGroupTab(num) {
+    activeGroupTab = num;
+    document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', (idx + 1) === num);
+    });
+    updateNumberGroupsScreen();
+}
+
+function updateLimitValue(val) {
+    groupLimits['col' + activeGroupTab] = parseInt(val) || 0;
+    saveState();
+    updateNumberGroupsScreen();
+}
+// History ထဲရောက်သွားသော Over တန်ဖိုးများကို မူရင်းစုစုပေါင်းမှ နှုတ်ပေးမည့် Function
+function getLiveTotals(tabNum) {
+    const groupMap = { 1: group3_v1, 2: group3_v2, 3: group2_v1, 4: group2_v2 };
+    const colKey = 'col' + tabNum;
+    let totals = {};
+    
+    (groupMap[tabNum] || []).forEach(item => {
+        let parts = item.split('=');
+        totals[parts[0]] = (totals[parts[0]] || 0) + (parseInt(parts[1]) || 0);
+    });
+
+    numberGroups.forEach(g => {
+        let historyData = g[colKey] || "";
+        if (historyData) {
+            historyData.split('\n').forEach(line => {
+                if(!line.trim()) return;
+                let parts = line.split('=');
+                let num = parts[0];
+                let val = parseInt(parts[1]) || 0;
+                if (num && val) totals[num] = (totals[num] || 0) - val;
+            });
+        }
+    });
+
+    for (let num in totals) { if (totals[num] <= 0) delete totals[num]; }
+    return totals;
+}
+
+
+// (အသစ်) မူလစုစုပေါင်းထဲမှ History သို့ရောက်သွားသော Over တန်ဖိုးများကို နှုတ်ပေးမည့် Function
+function getLiveTotals(tabNum) {
+    const groupMap = { 1: group3_v1, 2: group3_v2, 3: group2_v1, 4: group2_v2 };
+    const colKey = 'col' + tabNum;
+    let totals = {};
+    
+    (groupMap[tabNum] || []).forEach(item => {
+        let parts = item.split('=');
+        totals[parts[0]] = (totals[parts[0]] || 0) + (parseInt(parts[1]) || 0);
+    });
+
+    numberGroups.forEach(g => {
+        let historyData = g[colKey] || "";
+        if (historyData) {
+            historyData.split('\n').forEach(line => {
+                if(!line.trim()) return;
+                let parts = line.split('=');
+                let num = parts[0];
+                let val = parseInt(parts[1]) || 0;
+                if (num && val) {
+                    totals[num] = (totals[num] || 0) - val;
+                }
+            });
+        }
+    });
+
+    for (let num in totals) {
+        if (totals[num] <= 0) delete totals[num];
+    }
+    return totals;
+}
+
+function updateNumberGroupsScreen(){
+    const view = document.getElementById("single-group-view");
+    if(!view) return;
+    
+    var now=new Date();
+    let dh = document.getElementById("current-groups-date-header");
+    if(dh) dh.innerText=now.toLocaleString("en-GB");
+    
+    const currentLimit = groupLimits['col' + activeGroupTab] || 0;
+    let lInp = document.getElementById('current-group-limit');
+    if(lInp) lInp.value = currentLimit || "";
+
+    const titles = { 1: "သုံးလုံး ဒဲ့", 2: "သုံးလုံး တွတ်", 3: "နှစ်လုံး ပေါ်", 4: "နှစ်လုံး အောက်" };
+    let activeTitle = titles[activeGroupTab];
+    
+    let totals = getLiveTotals(activeGroupTab);
+    let normalLines = [], overLines = [], normalSum = 0, overSum = 0;
+    
+    for (let num in totals) {
+    let totalVal = totals[num];
+    
+    // Limit က ၀ ဖြစ်နေရင် (သို့) ဘာမှမရေးထားရင် အကုန်လုံးကို Over ထဲထည့်မယ်
+    if (currentLimit === 0 || currentLimit === "" || currentLimit === null) {
+        overLines.push(num + "=" + totalVal);
+        overSum += totalVal;
+    } else {
+        // Limit က ၀ ထက်ကြီးမှသာ Normal နဲ့ Over ခွဲမယ်
+        let normal = Math.min(totalVal, currentLimit);
+        let over = Math.max(0, totalVal - currentLimit);
+        if (normal > 0) { normalLines.push(num + "=" + normal); normalSum += normal; }
+        if (over > 0) { overLines.push(num + "=" + over); overSum += over; }
+    }
+}
+
+    view.innerHTML = `
+        <div style="display: flex; gap: 6px; flex-grow: 1;">
+            <div class="groups-box" style="flex: 1; margin-top: 0; display: flex; flex-direction: column; padding: 6px;">
+                <h4 style="margin:0 0 5px; font-size:12px; color:#6d28d9; text-align:center;">${activeTitle} (Limit)</h4>
+                <textarea readonly style="width:100%; flex-grow:1; min-height:250px; font-size:17px; font-family:monospace; border:1px solid #ddd; padding:5px; border-radius:5px; box-sizing:border-box; background:#f5f5f5; color:#333;">${normalLines.join('\n')}</textarea>
+                <div style="margin-top:6px; background:#6d28d9; color:white; padding:8px 4px; border-radius:6px; text-align:center; font-weight:bold; font-size:14px;">Total: ${normalSum}</div>
+            </div>
+            <div class="groups-box" style="flex: 1; margin-top: 0; border-color:#ef4444; display: flex; flex-direction: column; padding: 6px;">
+                <h4 style="margin:0 0 5px; font-size:12px; color:#ef4444; text-align:center;">Over Limit</h4>
+                <textarea readonly style="width:100%; flex-grow:1; min-height:250px; font-size:17px; font-family:monospace; border:1px solid #ddd; padding:5px; border-radius:5px; color:#b91c1c; box-sizing:border-box; background:#f5f5f5;">${overLines.join('\n')}</textarea>
+                <div style="margin-top:6px; background:#ef4444; color:white; padding:8px 4px; border-radius:6px; text-align:center; font-weight:bold; font-size:14px;">Total: ${overSum}</div>
+            </div>
+        </div>
+    `;
+}
+
+
+function copyArea(id) {
+    const el = document.getElementById(id);
+    el.select();
+    document.execCommand('copy');
+    alert("Copy ကူးပြီးပါပြီ");
+}
+
+function shareArea(title, id) {
+    const val = document.getElementById(id).value;
+    if(navigator.share && val) navigator.share({title: title, text: val});
+}
+
+function addRecord(){
+if(current===null){ alert("အရင် ကော်မရှင် နာမည်ရွေးပါ"); return; }
+var num=document.getElementById("num").value.trim();
+var v1Text=document.getElementById("v1").value.trim();
+var v2Text=document.getElementById("v2").value.trim();
+if(!num || num.length<2){ alert("ဂဏန်းရိုက်ပါ"); return; }
+
+function handleSlash(target){
+    var txt = (target==="v1")?v1Text:v2Text;
+    if(!txt || txt.indexOf("/")===-1) return false;
+    var parts = txt.split("/");
+    var f=parseInt(parts[0],10), s=parseInt(parts[1],10);
+    var perms = (num.length===3) ? getPermutationsOf3(num) : perm2(num);
+    perms.forEach(p => {
+        var r={number:p, v1:null, v2:null};
+        if(target==="v1") r.v1 = (p===num)?f:s; else r.v2 = (p===num)?f:s;
+        recordsByIndex[current].push(r);
+    });
+    return true;
+}
+
+if(v1Text.indexOf("/")!==-1){ if(handleSlash("v1")){ finishAdd(); return; } }
+if(v2Text.indexOf("/")!==-1){ if(handleSlash("v2")){ finishAdd(); return; } }
+
+var v1 = v1Text==="" ? null : parseInt(v1Text,10);
+var v2 = v2Text==="" ? null : parseInt(v2Text,10);
+recordsByIndex[current].push({number:num,v1:v1,v2:v2});
+finishAdd();
+
+function finishAdd(){
+    recalculateAutoGroups();
+    document.getElementById("num").value="";
+    setActiveNumberInput(document.getElementById("num"));
+    renderRecords();
+    saveState();
+}
+}
+
+function deleteRecord(idx){
+recordsByIndex[current].splice(idx,1);
+recalculateAutoGroups();
+renderRecords();
+saveState();
+}
+
+function renderRecords(){
+var body=document.getElementById("records-table");
+body.innerHTML="";
+var sum1=0, sum2=0;
+var rows=recordsByIndex[current]||[];
+rows.forEach(function(r, i){
+    var tr=document.createElement("tr");
+    tr.innerHTML = `<td>${i+1}</td><td>${r.number}</td><td>${r.v1||''}</td><td>${r.v2||''}</td><td><button onclick="deleteRecord(${i})" style="background:#ef4444;color:white;border:none;padding:4px 6px;border-radius:6px;font-size:11px;"></button></td>`;
+    body.appendChild(tr);
+    sum1+=(r.v1||0); sum2+=(r.v2||0);
+});
+document.getElementById("sum1").innerText=sum1;
+document.getElementById("sum2").innerText=sum2;
+document.getElementById("sumAll").innerText=sum1+sum2;
+var sc = document.querySelector('.records-scroll-container');
+if(sc) sc.scrollTop = sc.scrollHeight;
+}
+
+function setActiveNumberInput(el){
+document.querySelectorAll(".number-input").forEach(i => i.classList.remove("active"));
+activeNumberInput=el;
+if(el){ el.classList.add("active"); el.dataset.firstKey="true"; }
+}
+
+function setupKeypad(){
+document.querySelectorAll(".number-input").forEach(inp => {
+    inp.readOnly=true;
+    inp.onclick=function(){ setActiveNumberInput(this); };
+});
+document.querySelectorAll("#num-keypad button").forEach(btn => {
+    btn.onclick=function(){
+        var key=this.dataset.key, action=this.dataset.action;
+        if(!activeNumberInput) activeNumberInput=document.getElementById("num");
+        if(key){
+            if(activeNumberInput.id==="num"){
+                if(key==="00" && activeNumberInput.value.length>=2) return;
+                if(activeNumberInput.value.length<3) activeNumberInput.value+=key;
+                if(activeNumberInput.value.length===3) setActiveNumberInput(document.getElementById("v1"));
+            } else {
+                if(activeNumberInput.dataset.firstKey==="true" && key!=="/"){ activeNumberInput.value=key; activeNumberInput.dataset.firstKey="false"; }
+                else activeNumberInput.value+=key;
+            }
+        } else if(action==="clear"){ activeNumberInput.value=""; activeNumberInput.dataset.firstKey="true"; }
+        else if(action==="ok") addRecord();
+        else if(action==="round") handleRound();
+        else if(action==="m") handleMoveKey();
+    };
+});
+setActiveNumberInput(document.getElementById("num"));
+}
+
+function handleMoveKey(){
+    var n=document.getElementById("num"), v1=document.getElementById("v1"), v2=document.getElementById("v2");
+    if(activeNumberInput===n) setActiveNumberInput(v1);
+    else if(activeNumberInput===v1) setActiveNumberInput(v2);
+    else setActiveNumberInput(n);
+}
+
+function handleRound(){
+    var num=document.getElementById("num").value, v1=document.getElementById("v1").value, v2=document.getElementById("v2").value;
+    if(num.length<2) return;
+    var val = v1 ? parseInt(v1,10) : parseInt(v2,10);
+    var target = v1 ? "v1" : "v2";
+    var perms = (num.length===3) ? getPermutationsOf3(num) : perm2(num);
+    perms.forEach(p => {
+        var r={number:p, v1:null, v2:null};
+        if(target==="v1") r.v1=val; else r.v2=val;
+        recordsByIndex[current].push(r);
+    });
+    recalculateAutoGroups();
+    document.getElementById("num").value="";
+    setActiveNumberInput(document.getElementById("num"));
+    renderRecords();
+    saveState();
+}
+
+/* ---------- VOUCHER ---------- */
+function formatVoucherRowForText(r){
+    if(!r || !r.number) return "";
+    var numS = r.number.toString().padStart(3, " ");
+    var v1s = r.v1 ? r.v1.toString().padStart(3, " ") : "   ";
+    var v2s = r.v2 ? r.v2.toString().padStart(3, " ") : "   ";
+    if(r.v1 !== null && r.v2 !== null) return numS + " = " + v1s + "  " + v2s;
+    else if(r.v1 !== null) return numS + " = " + v1s;
+    else if(r.v2 !== null) return numS + " =       " + v2s;
+    return "";
+}
+
+function makeVoucher(){
+    if(current===null || (recordsByIndex[current]||[]).length===0) return;
+    
+    var rows = recordsByIndex[current];
+    var buyer = document.getElementById("buyer-name").value || "Customer";
+    var date = document.getElementById("entry-date-small").innerText;
+    var wrap = document.getElementById("voucher-preview");
+    
+                let rowsHTML = rows.map(r => {
+        let is2D = (r.number.toString().length === 2);
+        
+        // v1 အပိုင်း
+        let v1_val = r.v1 ? Number(r.v1).toLocaleString() : "";
+        let v1_lab = (is2D && r.v1) ? "(ပေါ်)" : "";
+        
+        // × အပိုင်း
+        let x_sign = (r.v1 && r.v2) ? "×" : "";
+        
+        // v2 အပိုင်း
+        let v2_val = r.v2 ? Number(r.v2).toLocaleString() : "";
+        let v2_lab = (is2D && r.v2) ? "(အောက်)" : "";
+
+        return `
+            <div class="v-item-card">
+                <span class="v-num">${r.number}</span>
+                <div class="v-amount-grid">
+                    <span class="v-right">${v1_val}</span>
+                    <span class="v-label">${v1_lab}</span>
+                    <span class="v-x">${x_sign}</span>
+                    <span class="v-right">${v2_val}</span>
+                    <span class="v-label">${v2_lab}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    wrap.innerHTML = `
+        <div class="v-brand">Next3D Premium Digital Receipt</div>
+        <div class="v-header-main">
+            <div class="v-buyer-name">${buyer}</div>
+            <div class="v-date">${date}</div>
+        </div>
+        <div class="v-body">
+            ${rowsHTML}
+        </div>
+        <div class="v-total-section">
+            <span class="v-total-label">Grand Total</span>
+            <span class="v-total-value">${document.getElementById("sumAll").innerText}</span>
+        </div>
+        <div class="v-footer-msg">Thank you for choosing our service</div>
+    `;
+
+    wrap.style.display = "block";
+
+    html2canvas(wrap, {
+        backgroundColor: "#1e293b",
+        scale: 2,
+        logging: false,
+        useCORS: true
+    }).then(canvas => {
+        vouchers.unshift({
+            patientIndex: current,
+            img: canvas.toDataURL("image/png",0.7),
+            rows: JSON.parse(JSON.stringify(rows)),
+            buyerName: buyer,
+            dateStr: date,
+            total: document.getElementById("sumAll").innerText
+        });
+        
+        recordsByIndex[current] = [];
+        document.getElementById("buyer-name").value = "";
+        renderRecords();
+        recalculateAutoGroups();
+        wrap.style.display = "none";
+        alert("ဘောင်ချာ အသစ် ထုတ်ပြီးပါပြီ။");
+    });
+}
+
+
+function renderVouchers(list, isSent){
+    var box = document.getElementById(isSent ? "voucher-list-sent" : "voucher-list");
+    if(!box) return; box.innerHTML="";
+    if(list.length===0){ box.innerHTML="ဘောင်ချာ မရှိသေးပါ"; return; }
+    var groups={};
+    for(var i=0; i<list.length; i++){ var idx=list[i].patientIndex; if(!groups[idx]) groups[idx]=[]; groups[idx].push(i); }
+    for(var p=0; p<patients.length; p++){
+        if(!groups[p]) continue;
+        var gdiv=document.createElement("div"); gdiv.className="voucher-group open";
+        var header=document.createElement("div"); header.className="voucher-group-header";
+        header.style.background = isSent ? "#059669" : "#6d28d9";
+        header.innerHTML = `<div class="voucher-group-title">${patients[p]} (${groups[p].length})</div>`;
+        var body=document.createElement("div"); body.className="voucher-group-body"; body.style.display="block";
+        groups[p].forEach(vi => {
+            var v=list[vi], item=document.createElement("div"); item.className="voucher-item";
+            if(!isSent && selectedVoucherIndexes.includes(vi)) item.classList.add("selected");
+            item.innerHTML = `<img src="${v.img}" class="voucher-img"><button class="delete-voucher-btn" onclick="deleteSingleVoucher(${vi},${isSent})">X</button>`;
+            if(!isSent) item.onclick=function(){ toggleSelection(vi,item); };
+            body.appendChild(item);
+        });
+        gdiv.appendChild(header); gdiv.appendChild(body); box.appendChild(gdiv);
+    }
+    updateBtnState(isSent);
+}
+
+function toggleSelection(idx,el){
+    var p = selectedVoucherIndexes.indexOf(idx);
+    if(p===-1){ selectedVoucherIndexes.push(idx); el.classList.add("selected"); }
+    else { selectedVoucherIndexes.splice(p,1); el.classList.remove("selected"); }
+    updateBtnState(false);
+}
+
+function updateBtnState(isSent){
+    var m=document.getElementById("move-selected-btn"), s=document.getElementById("share-selected-btn");
+    if(!m) return;
+    if(isSent){ m.style.display=s.style.display='none'; }
+    else { m.style.display=s.style.display='flex'; m.disabled=s.disabled=(selectedVoucherIndexes.length===0); }
+}
+
+function deleteSingleVoucher(idx,isSent){
+    if(!confirm("ဖျက်မလား?")) return;
+    if(isSent) sentVouchers.splice(idx,1); else vouchers.splice(idx,1);
+    recalculateAutoGroups(); renderVouchers(isSent?sentVouchers:vouchers, isSent);
+}
+
+function moveSelectedVouchers(){
+    var isConfirmed = confirm("ရွေးချယ်ထားသော ဘောင်ချာများကို မှတ်တမ်းထဲသို့ ရွှေ့မှာ သေချာပါသလား?");
+    if (!isConfirmed) return;
+    selectedVoucherIndexes.sort((a,b)=>b-a).forEach(i => {
+        sentVouchers.unshift(vouchers.splice(i,1)[0]);
+    });
+    selectedVoucherIndexes=[]; 
+    recalculateAutoGroups(); 
+    renderVouchers(vouchers, false);
+    alert("မှတ်တမ်းထဲသို့ အောင်မြင်စွာ ရွှေ့ပြောင်းပြီးပါပြီ။");
+}
+
+function shareSelectedVouchers(){
+    var files = selectedVoucherIndexes.map(i => {
+        var v=vouchers[i], arr=v.img.split(','), mime=arr[0].match(/:(.*?);/)[1], bstr=atob(arr[1]), n=bstr.length, u8=new Uint8Array(n);
+        while(n--) u8[n]=bstr.charCodeAt(n);
+        return new File([u8], "v.png", {type:mime});
+    });
+    if(navigator.share) navigator.share({files:files});
+}
+
+function submitNumberGroups(){
+    const i = activeGroupTab; 
+    const titles = { 1: "သုံးလုံး ဒဲ့", 2: "သုံးလုံး တွတ်", 3: "နှစ်လုံး ပေါ်", 4: "နှစ်လုံး အောက်" };
+    let activeTitle = titles[i];
+
+    let totals = getLiveTotals(i);
+    let currentLimit = groupLimits['col' + i] || 0;
+    let overData = [];
+    let hasOver = false;
+
+    // ၁။ Over Limit ဖြစ်နေတာတွေကို တွက်ပြီး Array ထဲထည့်ပါ
+    for(let num in totals) {
+    let totalVal = totals[num];
+    
+    if (currentLimit === 0 || currentLimit === "" || currentLimit === null) {
+        // Limit 0 ဖြစ်နေရင် ရှိသမျှ အကုန်လုံးကို Over အနေနဲ့ ယူမယ်
+        overData.push({ num: num, val: totalVal });
+        hasOver = true;
+    } else if (totalVal > currentLimit) {
+        // Limit က ၀ ထက်ကြီးရင် သတ်မှတ်ချက်ကျော်တာကိုပဲ ယူမယ်
+        let over = totalVal - currentLimit;
+        overData.push({ num: num, val: over });
+        hasOver = true;
+    }
+}
+
+    if (!hasOver) {
+        alert(activeTitle + " အတွက် တင်ရန် Over Limit မရှိပါ။");
+        return;
+    }
+
+    // ၂။ တန်ဖိုး (val) အများဆုံးကနေ အနည်းဆုံးကို စီပါ (Sorting)
+    overData.sort((a, b) => b.val - a.val);
+
+    // ၃။ ဖိုင်နံပါတ်စဉ် သတ်မှတ်ခြင်း (လက်ရှိ အမျိုးအစားထဲမှာ ဘယ်နှစ်ခုရှိလဲ ကြည့်ပြီး ၁ ပေါင်းပါ)
+    let existingCount = numberGroups.filter(g => g.groupTitle === activeTitle).length;
+    let fileNo = existingCount + 1;
+
+    // ၄။ စာသားအဖြစ် ပြန်ပြောင်းပါ
+    let overLines = overData.map(d => d.num + "=" + d.val).join("\n");
+
+    let historyEntry = {
+        createdAt: new Date().toLocaleString("en-GB"),
+        groupTitle: activeTitle,
+        fileNumber: fileNo, // ဖိုင်နံပါတ်စဉ်
+        col1: "", col2: "", col3: "", col4: ""
+    };
+    
+    historyEntry['col' + i] = overLines;
+
+    numberGroups.unshift(historyEntry);
+    saveState();
+    updateNumberGroupsScreen(); 
+    
+    alert(activeTitle + " ဖိုင်နံပါတ် (" + fileNo + ") ကို မှတ်တမ်းတင်ပြီးပါပြီ။");
+}
+
+// ၁။ Filter တွင် "အားလုံး" ကို ဖြုတ်ပြီး "သုံးလုံး ဒဲ့" ကို Default ထားခြင်း
+let historyFilter = "သုံးလုံး ဒဲ့"; 
+// Copy ခလုတ် အလုပ်လုပ်စေရန် Function အသစ်
+function secureCopy(elementId) {
+    const copyText = document.getElementById(elementId).value;
+    
+    // ခေတ်မီ Browser များအတွက် (HTTPS ဖြစ်လျှင် ပိုကောင်းသည်)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(copyText).then(() => {
+            alert("Copy ကူးယူပြီးပါပြီ။");
+        }).catch(err => {
+            fallbackCopyTextSelection(copyText);
+        });
+    } else {
+        // Browser အဟောင်းများအတွက် Fallback
+        fallbackCopyTextSelection(copyText);
+    }
+}
+
+function fallbackCopyTextSelection(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    // အပြင်မှာ မမြင်ရအောင် ထားခြင်း
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("Copy ကူးယူပြီးပါပြီ။");
+    } catch (err) {
+        alert("Copy ကူးရန် အခက်အခဲရှိနေပါသည်။");
+    }
+    document.body.removeChild(textArea);
+}
+// Share ခလုတ် အလုပ်လုပ်စေရန် သီးသန့် Function
+function shareHistoryData(title, areaId, total) {
+    const val = document.getElementById(areaId).value;
+    // Share မည့် စာသားပုံစံကို စနစ်တကျ ပြင်ဆင်ခြင်း
+    const text = `--- ${title} ---\n\n${val}\n\nစုစုပေါင်း: ${total}`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: title,
+            text: text
+        }).then(() => {
+            console.log('Successful share');
+        }).catch((error) => {
+            console.log('Error sharing:', error);
+        });
+    } else {
+        alert("သင့်ဖုန်း/Browser သည် Share လုပ်ခြင်းကို မပံ့ပိုးပါ။ Browser အသစ်ဖြင့် ပြန်လည်စမ်းသပ်ပါ။");
+    }
+}
+
+// History မှတ်တမ်းကို ဖျက်သည့် Function
+function deleteHistory(idx) {
+    if (confirm("ဒီမှတ်တမ်းကို ဖျက်မှာ သေချာပါသလား?")) {
+        numberGroups.splice(idx, 1); // စာရင်းထဲမှ ဖျက်ထုတ်ခြင်း
+        saveState();                 // ဒေတာသိမ်းခြင်း
+        renderHistory();             // UI ကို ပြန်ပြခြင်း
+        alert("ဖျက်ပြီးပါပြီ။");
+    }
+}
+
+function renderHistory() {
+    var box = document.getElementById("history-list");
+    if (!box) return; box.innerHTML = "";
+    
+    // Filter ခလုတ်များ
+    let filterUI = document.createElement("div");
+    filterUI.style = "display:flex; gap:5px; margin-bottom:15px; overflow-x:auto; padding:10px 5px; background:#f8fafc; border-radius:10px;";
+    ["သုံးလုံး ဒဲ့", "သုံးလုံး တွတ်", "နှစ်လုံး ပေါ်", "နှစ်လုံး အောက်"].forEach(opt => {
+        let btn = document.createElement("button");
+        btn.innerText = opt;
+        btn.style = `padding:8px 15px; border-radius:8px; border:1px solid #ddd; font-size:12px; cursor:pointer; white-space:nowrap; 
+                    ${historyFilter === opt ? 'background:#6d28d9; color:white;' : 'background:white; color:#374151;'}`;
+        btn.onclick = () => { historyFilter = opt; renderHistory(); };
+        filterUI.appendChild(btn);
+    });
+    box.appendChild(filterUI);
+
+    let filteredData = numberGroups.filter(g => g.groupTitle === historyFilter);
+
+    if (filteredData.length === 0) {
+        box.innerHTML += `<div style="text-align:center; padding:40px; color:#9ca3af;">မှတ်တမ်း မရှိသေးပါ</div>`;
+        return;
+    }
+
+    filteredData.forEach(function(g, idx) {
+        let realIdx = numberGroups.indexOf(g);
+        var item = document.createElement("div"); 
+        item.style = "background:white; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:10px; overflow:hidden;";
+        
+        // ဖိုင်ခေါင်းစဉ် (နှိပ်လိုက်ရင် အောက်က ပွင့်လာမယ်)
+        var header = document.createElement("div");
+        header.style = "display:flex; justify-content:space-between; align-items:center; padding:15px; background:#ffffff; cursor:pointer; border-bottom: 1px solid #f1f5f9;";
+        header.onclick = function() {
+            let body = item.querySelector('.file-body');
+            body.style.display = (body.style.display === 'none') ? 'block' : 'none';
+        };
+
+        header.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="background:#6d28d9; color:white; width:35px; height:35px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:bold;">${g.fileNumber || '?'}</div>
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:bold; color:#1e293b;">ဖိုင်နံပါတ် (${g.fileNumber || '?'})</span>
+                    <span style="font-size:11px; color:#94a3b8;">${g.createdAt}</span>
+                </div>
+            </div>
+            <div style="color:#6d28d9; font-size:20px;">▾</div>
+        `;
+        
+        let content = "";
+        for(let i=1; i<=4; i++) { if(g['col'+i]) content = g['col'+i]; }
+        let lines = content.trim().split('\n');
+        let sum = 0; lines.forEach(l => { let p = l.split('='); if(p[1]) sum += parseInt(p[1]) || 0; });
+        
+        var body = document.createElement("div");
+        body.className = "file-body";
+        body.style = "padding:12px; display:none; background:#fcfcfc;"; // Default ပိတ်ထားမယ်
+        body.innerHTML = `
+            <div style="height:300px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; padding:10px;">
+                <textarea id="hist_at_${realIdx}" readonly 
+                    style="width:100%; height:100%; font-size:18px; font-family:monospace; border:none; background:transparent; resize:none; color:#334155;">${content}</textarea>
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:10px; background:#f1f5f9; border-radius:8px;">
+                <span style="font-weight:bold;">စုစုပေါင်း: ${sum.toLocaleString()}</span>
+                <button onclick="deleteHistory(${realIdx})" style="color:#ef4444; background:none; border:none; font-size:12px; font-weight:bold;">ဖျက်မည်</button>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button onclick="secureCopy('hist_at_${realIdx}')" style="flex:1; background:#059669; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold;">Copy</button>
+                <button onclick="shareHistoryData('${g.groupTitle}', 'hist_at_${realIdx}', ${sum})" style="flex:1; background:#3b82f6; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold;">Share</button>
+            </div>
+        `;
+        
+        item.appendChild(header); 
+        item.appendChild(body); 
+        box.appendChild(item);
+    });
+}
+
+// View ပြောင်းလဲရန် (အရောင်းစာရင်း နှင့် ဘောင်ချာများ)
+function toggleSentView(viewType) {
+    const salesView = document.getElementById('view-sales-summary');
+    const vouchersView = document.getElementById('view-vouchers-list');
+    const salesBtn = document.getElementById('btn-show-sales');
+    const vouchersBtn = document.getElementById('btn-show-vouchers');
+
+    if (viewType === 'sales') {
+        salesView.style.display = 'block';
+        vouchersView.style.display = 'none';
+        salesBtn.style.background = '#6d28d9'; salesBtn.style.color = 'white';
+        vouchersBtn.style.background = '#e5e7eb'; vouchersBtn.style.color = '#374151';
+        renderSalesSummary();
+    } else {
+        salesView.style.display = 'none';
+        vouchersView.style.display = 'block';
+        vouchersBtn.style.background = '#059669'; vouchersBtn.style.color = 'white';
+        salesBtn.style.background = '#e5e7eb'; salesBtn.style.color = '#374151';
+        renderVouchers(sentVouchers, true);
+    }
+}
+
+// အရောင်းစာရင်းကို ကော်မရှင်အလိုက် စုစည်းတွက်ချက်ပြသခြင်း
+function renderSalesSummary() {
+    const listDiv = document.getElementById('sales-ledger-list');
+    listDiv.innerHTML = "";
+    if (sentVouchers.length === 0) {
+        listDiv.innerHTML = "<div style='text-align:center; padding:40px; color:#94a3b8;'>ဖိုင်တွဲများ မရှိသေးပါ</div>";
+        return;
+    }
+    let summary = {};
+    sentVouchers.forEach(v => {
+        let pName = patients[v.patientIndex] || "အမည်မသိ";
+        if (!summary[pName]) summary[pName] = { items: [], totalAmount: 0 };
+        let amt = parseInt(v.total.replace(/,/g, '')) || 0;
+        summary[pName].items.push({ buyer: v.buyerName, amount: amt, date: v.dateStr });
+        summary[pName].totalAmount += amt;
+    });
+    for (let pName in summary) {
+        let group = summary[pName];
+        let folder = document.createElement('div');
+        folder.style = "background:white; border:1px solid #d1d5db; border-radius:8px; margin-bottom:10px; overflow:hidden;";
+        let shareText = `📂 ${pName} ၏ စာရင်း\n` + group.items.map(i => `▪️ ${i.buyer}: ${i.amount.toLocaleString()}`).join('\n') + `\n\nစုစုပေါင်း: ${group.totalAmount.toLocaleString()}`;
+        
+        folder.innerHTML = `
+            <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'" 
+                 style="padding:15px; background:#f3f4f6; display:flex; justify-content:space-between; cursor:pointer;">
+                <div style="font-weight:bold;">📂 ${pName} (${group.items.length} ဖိုင်)</div>
+                <div style="color:#6d28d9;">${group.totalAmount.toLocaleString()} ▾</div>
+            </div>
+            <div style="display:none; padding:10px; border-top:1px solid #eee;">
+                ${group.items.map(i => `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #f9fafb;"><span>${i.buyer}</span><b>${i.amount.toLocaleString()}</b></div>`).join('')}
+                <div style="display:flex; gap:5px; margin-top:10px;">
+                    <button onclick="copyToClipboard(\`${shareText}\`)" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:5px;">Copy</button>
+                    <button onclick="shareTextData(\`${shareText}\`)" style="flex:1; padding:8px; background:#3b82f6; color:white; border:none; border-radius:5px;">Share</button>
+                </div>
+            </div>`;
+        listDiv.appendChild(folder);
+    }
+}
+
+// Copy/Share အထောက်အကူပြု Function များ
+function copyToClipboard(text) {
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    alert("စာရင်းကို Copy ကူးပြီးပါပြီ။");
+}
+
+function shareTextData(text) {
+    if (navigator.share) {
+        navigator.share({ title: 'အရောင်းစာရင်း', text: text }).catch(() => {});
+    } else {
+        copyToClipboard(text);
+    }
+}
+
+
+// openScreen ပြောင်းလဲမှု (ဘောင်ချာမှတ်တမ်းထဲဝင်ရင် Default အနေနဲ့ အရောင်းစာရင်းပြရန်)
+// သင့်ရဲ့ မူလ openScreen function ထဲက vouchers-sent အပိုင်းကို ဒီအတိုင်း ပြင်လိုက်ပါ
+/*
+if(name==="vouchers-sent") toggleSentView('sales');
+*/
+/* ---------- WINNING CHECKER LOGIC ---------- */
+
+/* ---------- ပေါက်သီးစစ်ဆေးခြင်း (Auto-Save စနစ်ပါဝင်သည်) ---------- */
+
+// ၁။ Screen ဖွင့်လိုက်တာနဲ့ သိမ်းထားတဲ့ ဒေတာတွေကို ပြန်ဆွဲထုတ်ပေးမည့်အပိုင်း
+window.addEventListener('load', () => {
+    const s3d = localStorage.getItem('lastWin3D');
+    const s2dT = localStorage.getItem('lastWin2DTop');
+    const s2dB = localStorage.getItem('lastWin2DBottom');
+
+    if (s3d) { 
+        if(document.getElementById("win-3d")) {
+            document.getElementById("win-3d").value = s3d; 
+            check3DWinners(false); 
+        }
+    }
+    if (s2dT || s2dB) {
+        if(document.getElementById("win-2d-top")) {
+            document.getElementById("win-2d-top").value = s2dT || "";
+            document.getElementById("win-2d-bottom").value = s2dB || "";
+            check2DWinners(false);
+        }
+    }
+});
+
+// ၂။ ၃ လုံး စစ်ဆေးခြင်း
+function check3DWinners(showMsg = true) {
+    let winNum = document.getElementById("win-3d").value;
+    if (winNum.length !== 3) { if(showMsg) alert("၃ လုံးဂဏန်းရိုက်ပါ"); return; }
+    
+    localStorage.setItem('lastWin3D', winNum); // ဒေတာကို သိမ်းလိုက်ပြီ
+    let perms = getPermutationsOf3(winNum); 
+    let winners = {};
+    let allVouchers = [...vouchers, ...sentVouchers];
+
+    allVouchers.forEach(v => {
+        let pName = patients[v.patientIndex] || "အမည်မရှိ";
+        if (!winners[pName]) winners[pName] = { direct: 0, toot: 0 };
+        v.rows.forEach(row => {
+            if (row.number == winNum && row.v1) winners[pName].direct += parseInt(row.v1);
+            if (perms.includes(row.number.toString()) && row.v2) winners[pName].toot += parseInt(row.v2);
+        });
+    });
+    displayStyledResults(winners, "3D", "winning-results-area-3d");
+}
+
+// ၃။ ၂ လုံး စစ်ဆေးခြင်း
+function check2DWinners(showMsg = true) {
+    let top = document.getElementById("win-2d-top").value;
+    let bottom = document.getElementById("win-2d-bottom").value;
+    
+    localStorage.setItem('lastWin2DTop', top);
+    localStorage.setItem('lastWin2DBottom', bottom);
+    
+    let winners = {};
+    let allVouchers = [...vouchers, ...sentVouchers];
+
+    allVouchers.forEach(v => {
+        let pName = patients[v.patientIndex] || "အမည်မရှိ";
+        if (!winners[pName]) winners[pName] = { top: 0, bottom: 0 };
+        v.rows.forEach(row => {
+            if (top && row.number == top && row.v1) winners[pName].top += parseInt(row.v1);
+            if (bottom && row.number == bottom && row.v2) winners[pName].bottom += parseInt(row.v2);
+        });
+    });
+    displayStyledResults(winners, "2D", "winning-results-area-2d");
+}
+
+// ၄။ ရလဒ်ပြသခြင်း (သေသပ်သော ဇယားပုံစံ)
+function displayStyledResults(winners, type, targetId) {
+    let area = document.getElementById(targetId);
+    if(!area) return;
+
+    let themeColor = (type === "3D") ? "#db2777" : "#059669";
+    let html = `
+    <div style="border:1px solid #f1f5f9; border-radius:10px; overflow:hidden; margin-top:10px;">
+        <div style="background:${themeColor}10; color:${themeColor}; padding:8px; font-weight:bold; text-align:center; font-size:13px; border-bottom:1px solid #f1f5f9;">
+            ${type} ရလဒ်စာရင်း
+        </div>
+        <table style="width:100%; border-collapse:collapse; background:white; font-size:14px;">
+            <tr style="color:#94a3b8; border-bottom:1px solid #f8fafc; font-size:12px;">
+                <th align="left" style="padding:10px;">အမည်</th>
+                <th align="center">အမျိုးအစား</th>
+                <th align="right" style="padding:10px;">ပေါက်ကြေး</th>
+            </tr>`;
+            
+    let has = false;
+    for (let p in winners) {
+        let w = winners[p];
+        if (type === "3D") {
+            if (w.direct > 0) { html += renderWinnerRow(p, "ဒဲ့", w.direct.toLocaleString(), "#ef4444"); has = true; }
+            if (w.toot > 0) { html += renderWinnerRow(p, "တွတ်", w.toot.toLocaleString(), "#8b5cf6"); has = true; }
+        } else {
+            if (w.top > 0) { html += renderWinnerRow(p, "ပေါ်", w.top.toLocaleString(), "#10b981"); has = true; }
+            if (w.bottom > 0) { html += renderWinnerRow(p, "အောက်", w.bottom.toLocaleString(), "#3b82f6"); has = true; }
+        }
+    }
+    
+    if(!has) html += `<tr><td colspan="3" align="center" style="padding:20px; color:#cbd5e1;">ပေါက်သူမရှိပါ</td></tr>`;
+    area.innerHTML = html + `</table></div>`;
+}
+
+function renderWinnerRow(name, label, amt, color) {
+    return `<tr style="border-bottom:1px solid #f8fafc;">
+        <td style="padding:10px;"><b>${name}</b></td>
+        <td align="center"><span style="background:${color}15; color:${color}; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${label}</span></td>
+        <td align="right" style="padding:10px; font-weight:bold; color:#334155;">${amt}</td>
+    </tr>`;
+}
+
+// ၅။ ဒေတာဖျက်သိမ်းခြင်း
+function clearWinnerData(type) {
+    if (confirm(type + " စာရင်းကို ဖျက်မှာ သေချာပါသလား?")) {
+        if (type === '3D') {
+            localStorage.removeItem('lastWin3D');
+            document.getElementById("win-3d").value = "";
+            document.getElementById("winning-results-area-3d").innerHTML = "";
+        } else {
+            localStorage.removeItem('lastWin2DTop'); 
+            localStorage.removeItem('lastWin2DBottom');
+            document.getElementById("win-2d-top").value = ""; 
+            document.getElementById("win-2d-bottom").value = "";
+            document.getElementById("winning-results-area-2d").innerHTML = "";
+        }
+    }
+}
+window.onload=function(){ setToday(); loadState(); setupKeypad(); openScreen('home'); };
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+    apiKey: "AIzaSyAqGGhtCsFKN-wKpm_CG0OI9ecXHRgsz04",
+    authDomain: "fnext3d-2ff05.firebaseapp.com",
+    projectId: "fnext3d-2ff05",
+    storageBucket: "fnext3d-2ff05.firebasestorage.app",
+    messagingSenderId: "118393484352",
+    appId: "1:118393484352:web:d72f03716460a3c3dd9ba5",
+    databaseURL: "https://fnext3d-2ff05-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+
+  // Firebase ကို တစ်ကြိမ်တည်းသာ Initialize လုပ်ပါ
+  if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+  }
+  const db = firebase.database();
+
+  function getPersistentDeviceID() {
+      let deviceId = localStorage.getItem('next3d_device_id');
+      if (!deviceId) {
+          deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+          localStorage.setItem('next3d_device_id', deviceId);
+      }
+      return deviceId;
+  }
+
+  const myDeviceID = getPersistentDeviceID();
+
+  function copyDeviceID() {
+      const el = document.createElement('textarea');
+      el.value = myDeviceID;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      alert("Device ID ကို ကော်ပီကူးပြီးပါပြီ။");
+  }
+
+  function startAuthListener() {
+      // ID ကို UI မှာ ချက်ချင်းအရင်ပြမယ်
+      const idDisplay = document.getElementById('display-device-id');
+      if(idDisplay) idDisplay.innerText = myDeviceID;
+
+      const deviceRef = db.ref('authorized_devices/' + myDeviceID);
+      deviceRef.on('value', (snapshot) => {
+          const data = snapshot.val();
+          if (data ) {
+              showMainApp();
+          } else if (!data) {
+              deviceRef.set({
+                  id: myDeviceID,
+                  status: "pending",
+                  last_request: new Date().toLocaleString()
+              });
+          }
+      });
+  }
+
+  function showMainApp() {
+      document.getElementById('activation-gate').style.display = 'none';
+      document.getElementById('original-software-container').style.display = 'block';
+  }
+
+  // DOMContentLoaded ကိုသုံးခြင်းက ID ပိုမြန်မြန် ပေါ်စေပါတယ်
+  window.addEventListener('DOMContentLoaded', () => {
+      startAuthListener();
+  });
+</script>
+
+</body> </html>
