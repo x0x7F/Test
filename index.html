@@ -2075,22 +2075,7 @@ window.onload=function(){ setToday(); loadState(); setupKeypad(); openScreen('ho
 
   function startAuthListener() {
       // ID ကို UI မှာ ချက်ချင်းအရင်ပြမယ်
-      const idDisplay = document.getElementById('display-device-id');
-      if(idDisplay) idDisplay.innerText = myDeviceID;
-
-      const deviceRef = db.ref('authorized_devices/' + myDeviceID);
-      deviceRef.on('value', (snapshot) => {
-          const data = snapshot.val();
-          if (data ) {
-              showMainApp();
-          } else if (!data) {
-              deviceRef.set({
-                  id: myDeviceID,
-                  status: "pending",
-                  last_request: new Date().toLocaleString()
-              });
-          }
-      });
+    showMainApp();
   }
 
   function showMainApp() {
